@@ -1,4 +1,11 @@
-This repository contains a base class for the creation of user scripts that will apply subreddit-specific emotes to all sections of reddit.
+This repository contains a base class for the creation of user scripts that will apply subreddit-specific emotes
+to all sections of reddit.
+
 It also includes several examples of implementation using this base class.
+
+Files:
+reddit-wide-emotes.user.js - Base class to be instantiated/extended. Does nothing by itself.
+reddit-wide-emotes-f7u12.user.js - working user script for rage-face emotes from r/fffffffuuuuuuuuuuuu
+reddit-wide-emotes-mylittleandysonic1.user.js - working user script for pony emotes from r/mylittleandysonic1
 
 I, the author of this script, cannot and won't be held responsible for any damage, injury, or fun incurred by its use.
