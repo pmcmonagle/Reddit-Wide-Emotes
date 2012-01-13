@@ -1,21 +1,22 @@
 // ==UserScript==
-// @name         Reddit Wide Emotes
-// @namespace    http://www.reddit.com/#reddit-wide-emotes
+// @name         Reddit-Wide Emotes
+// @namespace    https://github.com/pmcmonagle/Reddit-Wide-Emotes
 // @description  Base class for implementing subreddit-specific emotes that can be used on all parts of reddit. Note: this does nothing on its own - see usage examples.
-// @version      1.0
-// @author       Paul McMonagle <mcmonagle.paul@gmail.com> http://www.reddit.com/user/Veeediot/
+// @version      1.1.0
+// @author       Paul McMonagle <mcmonagle.paul@gmail.com> https://github.com/pmcmonagle
 // @include      http://reddit.com/*
 // @include      http://*.reddit.com/*
 // @match        http://reddit.com/*
 // @match        http://*.reddit.com/*
 // ==/UserScript==
-
-/**
- * Re-written from the ground up by Veeediot
- * With influence from cheesemoo's http://dl.dropbox.com/u/948740/mylittleandysonic1.user.js
- * Which was adapted from ghostofme's http://userscripts.org/scripts/show/94898
- * Which was, in turn, adapted from maranas' https://github.com/maranas/Reddit-Rage-Faces
+ 
+/** 
+ * This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+ * http://creativecommons.org/licenses/by-nc-sa/3.0/
  */
+
+// Contact me on Reddit: http://www.reddit.com/message/compose/?to=Veeediot
+// Special thanks to cheesemoo and his pony emotes script: http://dl.dropbox.com/u/948740/mylittleandysonic1.user.js
 
 var redditWide = redditWide || {
 	emotes: {},
@@ -23,25 +24,38 @@ var redditWide = redditWide || {
 };
 
 /** 
- * AJAX Implementation - sans jQuery
+ * AJAX utility class.
+ * 
+ * @constructor
+ * @this {redditWide.utilities.Ajax}
  */
 redditWide.utilities.Ajax = function () {
 	this.ajaxObject = null;
 	if (window.XMLHttpRequest) {
 		this.ajaxObject = new XMLHttpRequest();
 	}
+	// Probably redundant since IE doesn't support user scripts.
 	if (window.ActiveXObject) {
 		this.ajaxObject = new ActiveXObject("Microsoft.XMLHTTP");
 	}
 };
 
+/** 
+ * Applies the response text of an AJAX request to a supplied callback function.
+ * 
+ * @this {redditWide.utilities.Ajax}
+ * @param {String} url The URL to retreive data from. Must be same origin, eg. http://www.reddit.com/*.
+ * @param {Function} callback A callback function that expects ajax.responseText as its first argument.
+ * @param {Object|null} [scope] The callback function will be applied to the scope of this object if provided. (Optional)
+ * @param {*} [args] All additional arguments will be applied to the callback function. (Optional)
+ */
 redditWide.utilities.Ajax.prototype.getResponseAsText = function (url, callback, scope) {
 	var ajax = this.ajaxObject,
 		args = Array.prototype.slice.call(arguments);
 	
 	args = args.length > 2 ? args.slice(2) : [];
-	
 	scope = scope || null;
+	
 	while (args[0] === scope) {
 		args.shift();
 	}
@@ -56,18 +70,30 @@ redditWide.utilities.Ajax.prototype.getResponseAsText = function (url, callback,
 			callback.apply(scope, args);
 		}
 	};
+	
 	ajax.open("GET", url, true);
 	ajax.send(null);
 };
 
 /** 
- * Common reddit-wide emotes class
+ * Reddit-Wide Emotes class.
+ * 
+ * @constructor
+ * @this {redditWide.emotes.Common}
+ * @param {Array} subreddits An array of subreddit strings to pull emotes from; eg. ['javascript'] for /r/javascript
  */
 redditWide.emotes.Common = function (subreddits) {
 	this.subreddits = subreddits;
 };
 
-redditWide.emotes.Common.prototype.init = function () {
+/** 
+ * Reddit-Wide Emotes class.
+ * 
+ * @constructor
+ * @this {redditWide.emotes.Common}
+ * @param {Array} subreddits An array of subreddit strings to pull emotes from; eg. ['javascript'] for /r/javascript
+ */
+redditWide.emotes.Common.prototype.requestStyles = function () {
 	var i, scope, url, ajax;
 	
 	if(typeof this.subreddits !== "object") {
@@ -78,21 +104,34 @@ redditWide.emotes.Common.prototype.init = function () {
 		scope = this;
 		url = "/r/" + this.subreddits[i] + "/stylesheet.css";
 		ajax = new redditWide.utilities.Ajax();
-		ajax.getResponseAsText(url, this.handleCSS, scope, this.subreddits[i]);
+		ajax.getResponseAsText(url, this.responseHandler, scope, this.subreddits[i]);
 	}
 };
 
 /** 
- * Provide CSS data and patterns to extractCSS.
+ * Callback function for AJAX requests to various subreddit stylesheets.
+ * 
+ * @private
+ * @param {String} data Ajax responseText from a subreddit stylesheet.
+ * @param {String} [subreddit] Name of the subreddit where the data originated from. (optional)
  */
-redditWide.emotes.Common.prototype.handleCSS = function (data) {
-	this.extractCSS(data, /a\[href[\^|]?=['"]\/[^\}]+\}/g);
+redditWide.emotes.Common.prototype.responseHandler = function (data, subreddit) {
+	this.applyStyles(data, /a\[href[\^|]?=['"]\/[^\}]+\}/g);
+	switch(subreddit) {
+		default:
+			break;
+	}
 };
 
 /** 
- * Extract snippets of CSS using provided Regular Expressions, and apply them.
+ * Tests a stylesheet from an AJAX response against a regular expression.
+ * Positive matches are added to the page as a <style> tag within the head of the document.
+ * 
+ * @private
+ * @param {String} data Ajax responseText from a subreddit stylesheet.
+ * @param {RegExp} pattern Regular expression to test the data against before adding it to the page. (optional)
  */
-redditWide.emotes.Common.prototype.extractCSS = function (data, pattern) {
+redditWide.emotes.Common.prototype.applyStyles = function (data, pattern) {
 	var styles = data.match(pattern),
 		styleElement,
 		styleText;
@@ -107,28 +146,26 @@ redditWide.emotes.Common.prototype.extractCSS = function (data, pattern) {
 	}
 };
 
-/** 
- * Examples of Usage
- */
+/* Examples of Usage */
  
 /*
 // Easy Mode - pulls only the a[href= stuff.
 redditWide.emotes.instance = new redditWide.emotes.Common(["fffffffuuuuuuuuuuuu"]);
-redditWide.emotes.instance.init();
+redditWide.emotes.instance.requestStyles();
 */
 
 /*
 // Hero Mode - extend the Common class for fun and profit!
 redditWide.emotes.Mylittlepony = function () {};
 redditWide.emotes.Mylittlepony.prototype = new redditWide.emotes.Common(["mylittlepony", "mylittleonions"]);
-redditWide.emotes.Mylittlepony.prototype.handleCSS = function (data, subreddit) {
-	this.extractCSS(data, /a\[href[\^|]?=['"]\/[^\}]+\}/g);
+redditWide.emotes.Mylittlepony.prototype.responseHandler = function (data, subreddit) {
+	this.applyStyles(data, /a\[href[\^|]?=['"]\/[^\}]+\}/g);
 	if (subreddit === "mylittlepony") {
 		// Note: this doesn't actually exist in the r/mylittlepony stylesheet, but I've seen similar things in other subreddits.
-		this.extractCSS(data, /\/\/===IMAGINARY CSS TOKEN===[\s\S]*\/\/===END IMAGINARY CSS TOKEN===/g);
+		this.applyStyles(data, /\/\/===IMAGINARY CSS TOKEN===[\s\S]*\/\/===END IMAGINARY CSS TOKEN===/g);
 	}
 };
 
 redditWide.emotes.instance = new redditWide.emotes.Mylittlepony();
-redditWide.emotes.instance.init();
+redditWide.emotes.instance.requestStyles();
 */
